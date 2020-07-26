@@ -1,0 +1,6 @@
+{
+    "require": {
+        "overtrue/wechat": "~4.1",
+        "leancloud/leancloud-sdk": "^0.13.0"
+    }
+}

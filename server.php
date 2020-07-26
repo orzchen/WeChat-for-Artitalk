@@ -1,0 +1,242 @@
+<?php 
+require __DIR__.'/vendor/autoload.php';
+require_once("vendor_lean/autoload.php");
+
+use EasyWeChat\Factory;
+use LeanCloud\Client;
+use LeanCloud\LeanObject;
+use LeanCloud\User;
+
+function request_post($url = '', $post_data = array()) {
+    if (empty($url) || empty($post_data)) {
+        return false;
+    }
+
+    $o = "";
+    foreach ($post_data as $k => $v) {
+        $o.= "$k=" . urlencode($v). "&" ;
+    }
+    $post_data = substr($o,0,-1);
+
+    $postUrl = $url;
+    $curlPost = $post_data;
+    $ch = curl_init();
+    //初始化curl
+    curl_setopt($ch, CURLOPT_URL,$postUrl);
+    //抓取指定网页
+    curl_setopt($ch, CURLOPT_HEADER, 0);
+    //设置header
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
+    //要求结果为字符串且输出到屏幕上
+    curl_setopt($ch, CURLOPT_POST, 1);
+    //post提交方式
+    curl_setopt($ch, CURLOPT_POSTFIELDS, $curlPost);
+    $data = curl_exec($ch);
+    //运行curl
+    curl_close($ch);
+
+    return $data;
+}
+function push($url,$class,$AppID,$AppKey,$MasterKey,$username,$userpass,$talk,$my_type) {
+    $desp = array('class' => $class,'talk' => $talk,'my_type' => $msg_type,'AppID' => $AppID,'AppKey' => $AppKey,'MasterKey' => $MasterKey,'action' => "send_talk",'username' => $username,'userpass' => md5($userpass),'token' => 'weixin');
+    $res = request_post($url, $desp);
+    return $res;
+}
+function curl($url) {
+    $curl = curl_init();
+    curl_setopt($curl, CURLOPT_URL, $url);
+    curl_setopt($curl, CURLOPT_RETURNTRANSFER, 1);
+    curl_setopt($curl, CURLOPT_CONNECTTIMEOUT, 10);
+    curl_setopt($curl, CURLOPT_TIMEOUT, 10);
+    curl_setopt($curl, CURLOPT_REFERER, $url);
+    $result = curl_exec($curl);
+    curl_close($curl);
+    return $result;
+}
+
+include 'config.php';
+
+$app = Factory::officialAccount($config);
+$app->server->push(function ($message) {
+    include 'config.php';
+    $http_type=((isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] == 'on') || (isset($_SERVER['HTTP_X_FORWARDED_PROTO']) && $_SERVER['HTTP_X_FORWARDED_PROTO'] == 'https')) ? 'https://' : 'http://'; 
+    $openid = $message['FromUserName'];
+    $arr = $db->query("SELECT * FROM `userinfo` WHERE openid='{$openid}'")->fetch();
+    $url = $arr['url'];
+    $address = $arr['address'];
+    $class = $arr['class'];
+    $AppID = $arr['AppID'];
+    $AppKey = $arr['AppKey'];
+    $MasterKey = $arr['MasterKey'];
+    $username = $arr['username'];
+    $userpass = $arr['userpass'];
+    switch ($message['Content']) {
+        case 'openid':
+            return $message['FromUserName'];
+            break;
+        case "绑定":
+            if (isset($url)) {
+                return "<a href='".$http_type.$_SERVER["HTTP_HOST"].dirname($_SERVER['SCRIPT_NAME'])."/bind.php?openid=$openid'>您已绑定，点击查看或修改</a>";
+            } else {
+                return "<a href='".$http_type.$_SERVER["HTTP_HOST"].dirname($_SERVER['SCRIPT_NAME'])."/bind.php?openid=$openid'>点击绑定</a>";
+            }
+            break;
+        case "解除绑定":case "解绑":
+            if ($db->query("DELETE FROM `userinfo` WHERE openid='{$openid}'")) {
+                return "已经解除绑定";
+            } else {
+                return "操作失败，未知错误";
+            }
+            break;
+        case "帮助":
+            return '1.发送 绑定 进行绑定或修改绑定信息';
+            break;
+        default:
+            if ($url!=null && $AppID!=null && $AppKey!=null && $MasterKey!=null && $username!=null && $userpass!=null){
+                switch ($message['Content']) {
+                    case "博客":
+                        return '<a href=\''.$url.'\'>打开博客</a>';
+                        break;
+                    case "说说":case "微语":
+                        return '<a href=\''.$url.$address.'\'>打开说说/微语</a>';
+                        break;
+                    default:
+                        switch ($message['Content']) {
+                            case "取消":
+                                $db->query("update `userinfo` set msg_type='',talk='' where openid='$openid'");
+                                return "已取消发送";
+                                break; 
+                            case '发说说':case '开始':
+                                $msg_type = 'start_talk';
+                                $db->query("update `userinfo` set msg_type='$msg_type',talk='' where openid='$openid'");
+                                return "当前处于混合消息模式，请继续，发送『结束』结束本次发送，发送『取消』取消本次发送~";
+                                break;
+                            case '结束':
+                                $arr = $db->query("SELECT * FROM `userinfo` WHERE openid='{$openid}'")->fetch();
+                                $str = $arr['talk'];
+                                if($str==null){
+                                    $db->query("update `userinfo` set msg_type='',talk='' where openid='$openid'");
+                                    return "已结束，本次操作未发送任何信息~";
+                                    exit();
+                                }
+                                $msg_type = $arr['msg_type'];
+                                $arr = mb_split('@',$str);
+                                $m = count($arr);
+                                for ($i = 0;$i < $m-1;$i++) {
+                                    $con[$i] = mb_split('->',$arr[$i]);
+                                }
+                                $m1 = count($con);
+                                for ($m = 0;$m < $m1;$m++) {
+                                    $result[$m] = array('type' => $con[$m][0],'talk' => $con[$m][1]);
+                                }
+                                $talk = array('results' => $result);
+                                $talk_post = '';
+                                $m2 = count($talk['results']);
+                                for ($m = 0;$m<$m2;$m++){
+                                    $talk_post = $talk_post.$talk['results'][$m]['talk'];
+                                }
+                                Client::initialize($AppID, $AppKey, $MasterKey);
+                                User::logIn($username, $userpass);
+                                $testObject = new LeanObject($class);
+                                $testObject->set("content", $talk_post);
+                                $testObject->set("os", "WeChat");
+                                $testObject->set("postion", "by WeChat");
+                                        try {
+                                            $testObject->save();
+                                            $status = "1";
+                                        } catch (Exception $ex) {
+                                            $status = "0";
+                                        }
+                                $db->query("update `userinfo` set msg_type='',talk='' where openid='$openid'");
+                                switch ($status) {
+                                    case "1":
+                                        return "♥biubiubiu~发送成功";
+                                        break;
+                                    case "0":
+                                        return "🤦‍发送失败，可能是你的绑定信息有误。";
+                                        break;
+                                    default:
+                                        return $status;
+                                }
+
+                                break;
+                            default:
+                                $arr = $db->query("SELECT * FROM `userinfo` WHERE openid='{$openid}'")->fetch();
+                                $buffer = $arr['talk'];
+                                $type = $arr['msg_type'];
+                                switch ($message['MsgType']) {
+                                    case "location":
+                                        $content = "<p>"."📌"."#" . $message['Label'] . "</p>"."<img height=\"80.258%\" width=\"80.258%\"src=\""."https://restapi.amap.com/v3/staticmap?location=" . $message['Location_Y'] . "," . $message['Location_X'] . "&zoom=10&size=750*300&markers=mid,,A:" . $message['Location_Y'] . "," . $message['Location_X'] . "&key=5d0101d3f71377bc1bc5454ea64566e6"."\"/>";
+                                        $talk = $content;
+                                        $msg_type = "location";
+                                        if ($type == 'start_talk') {
+                                            $talk = $buffer.$msg_type."->".$talk."@";
+                                        }
+                                        $db->query("update `userinfo` set talk='$talk' where openid='$openid'");
+                                        break;
+                                    case "image":
+                                        $content = "</p><img src=\"".$message['PicUrl']."\" height=\"25.258%\" width=\"25.258%\"/>";
+                                        $talk = $content;
+                                        $msg_type = "image";
+                                        if ($type == 'start_talk') {
+                                            $talk = $buffer.$msg_type."->".$talk."@";
+                                        }
+                                        $db->query("update `userinfo` set talk='$talk' where openid='$openid'");
+                                        break;
+                                    case "link":
+                                        $content = "<p>"."#"."🔗".$message['Description']."# "."<a target=\"\_blank\" href=\"".$message['Url']."\">".$message['Title']."</a>"."<p>";
+                                        $talk = $content;
+                                        $msg_type = "link";
+                                        if ($type == 'start_talk') {
+                                            $talk = $buffer.$msg_type."->".$talk."@";
+                                        }
+                                        $db->query("update `userinfo` set talk='$talk' where openid='$openid'");
+                                        break; 
+                                    case "text":
+                                        $talk = "<p>".$message['Content']."</p>";
+                                        $msg_type = "text";
+                                        if ($type == 'start_talk') {
+                                            $talk = $buffer.$msg_type."->".$talk."@";
+                                        }
+                                        $db->query("update `userinfo` set talk='$talk' where openid='$openid'");
+                                        break;
+                                    default:
+                                        return "不支持的消息类型";
+                                        exit();
+                                }
+                                $arr = $db->query("SELECT * FROM `userinfo` WHERE openid='{$openid}'")->fetch();
+                                $talk = $arr['talk'];
+                                $type = $arr['msg_type'];
+                                switch ($type) {
+                                    case 'start_talk':
+                                        return "请继续，发送『结束』结束本次发送，发送『取消』取消本次发送~";
+                                        break;
+                                    default:
+                                        Client::initialize($AppID, $AppKey, $MasterKey);
+                                        User::logIn($username, $userpass);
+                                        $testObject = new LeanObject($class);
+                                        $testObject->set("content", $talk);
+                                        $testObject->set("os", "WeChat");
+                                        $testObject->set("postion", "by WeChat");
+                                        try {
+                                            $testObject->save();
+                                            return "♥biubiubiu~发送成功";
+                                        } catch (Exception $ex) {
+                                            return "🤦‍发送失败，可能是你的绑定信息有误。";
+                                        }
+                                }
+
+                        }
+                      
+                }
+            }
+            else{
+                return "<a href='".$http_type.$_SERVER["HTTP_HOST"].dirname($_SERVER['SCRIPT_NAME'])."/bind.php?openid=$openid'>您还未绑定，点击绑定</a>";
+            }
+    }
+});
+
+$response = $app->server->serve(); 
+
+// 将响应输出
+$response->send(); // Laravel 里请使用：return $response;
