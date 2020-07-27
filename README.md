@@ -50,7 +50,7 @@
 
 ------
 
-**扫码体验**	[【**Demo**】](https://cdn.jsdelivr.net/gh/orzchen/WeChat-for-Artitalk/Demo/demo.html)（扒的Uncle_drew的Demo）
+**扫码体验**	[【**Demo**】](https://orzchen.github.io/demo.html)（扒的Uncle_drew的Demo）
 
 ![扫码体验](https://cdn.jsdelivr.net/gh/orzchen/Blog/images/20200726215129.jpg)
 
