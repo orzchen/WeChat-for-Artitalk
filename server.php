@@ -65,6 +65,8 @@ $app->server->push(function ($message) {
                     case "说说":case "微语":
                         return '<a href=\''.$url.$address.'\'>打开说说/微语</a>';
                         break;
+                    case "发图":
+                        return '<a href=\'https://pic.icene.cn/\'>打开上传图片</a>';
                     default:
                         switch ($message['Content']) {
                             case "取消":
@@ -142,8 +144,8 @@ $app->server->push(function ($message) {
                                     case "image":
                                         $imgurl = $message['PicUrl'];
                                         include_once 'gtimg.php';
-										
-                                        $content = "</p><img src=\"".$remoteimg."\" height=\"25.258%\" width=\"25.258%\"/>";
+                                    
+                                        $content = "</p><a href=\"$remoteimg\" target=\"_blank\"><img class=\"shuoshuoimg gallery-group-img\" src=\"".$remoteimg."\" style=\"width: 20%\"/></a>";
                                         $talk = $content;
                                         $msg_type = "image";
                                         if ($type == 'start_talk') {
