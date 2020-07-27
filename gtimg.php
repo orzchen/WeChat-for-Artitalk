@@ -69,7 +69,7 @@ function upload_gitee($filename, $content)
     curl_setopt_array($ch, $defaultOptions);
     $chContents = curl_exec($ch);
     curl_close($ch);
-    return $chContents;
+    return $chContents; 
 }
 
 function dlfile($file_url, $save_to)
