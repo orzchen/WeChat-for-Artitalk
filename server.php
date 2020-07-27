@@ -54,7 +54,25 @@ $app->server->push(function ($message) {
             }
             break;
         case "帮助":
-            return '1.发送 绑定 进行绑定或修改绑定信息';
+            return '1.发送 绑定 进行绑定或修改绑定信息。
+            2.发说说
+            支持文字、图片、地理位置、链接四种消息类型。
+            其他消息类型等后续开发，暂不支持（如果发送了，会提示不支持该类型的，如语音消息）。
+            可以发送手机输入发自带的emoji，不支持微信emoji和表情包（发送后会提示成功，但是在说说界面会显示乱码或 【收到不支持的消息类型，暂无法显示】 ）。
+            如果发送的是图片会自动将图片上传到 Gitee 仓库。
+            
+            连续发送多条信息
+            发送【开始】，开始一轮连续发送
+            发送【结束】，结束当前轮的发送
+            
+            3.其他操作
+            发送 博客/说说/微语 收到你的 博客/说说 地址的链接
+            发送 解除绑定 或 解绑 可删除掉你的绑定信息
+            发送 帮助 查看帮助信息
+            
+            4.如果你发送的信息没有触发关键词，将直接以发说说的形式发布。
+            
+            5.<a href=\'https://www.icene.cn/archives/WeChat-for-Artitalk\'>图文教程</a>';
             break;
         default:
             if ($url!=null && $AppID!=null && $AppKey!=null && $MasterKey!=null && $username!=null && $userpass!=null){
