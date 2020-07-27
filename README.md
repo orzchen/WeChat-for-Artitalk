@@ -2,6 +2,8 @@
 
 **🤖微信公众号服务端 for Artitalk**🤖
 
+详情请见 [点这里](https://www.icene.cn/archives/WeChat-for-Artitalk)
+
 ### 📚说明
 
 ------
