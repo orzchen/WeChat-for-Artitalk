@@ -4,36 +4,66 @@ error_reporting(0);
 header('Content-Type: text/html; charset=UTF-8');
 date_default_timezone_set("PRC");
 
-define("USER","owner");//你的GitHub的用户名
+define("USER","orzchen");//你的GitHub/Gitee的用户名
 
-define("REPO","repo");//必须是上面用户名下的 公开仓库
+define("REPO","WeChatUpload");//必须是上面用户名下的 公开仓库
 
 define("MAIL","yumusb@foxmail.com");//邮箱无所谓，随便写
 
 define("TOKEN","access_token");
 
-function upload_github($filename, $content)
+// function upload_github($filename, $content)
+// {   
+//     $url = "https://api.github.com/repos/" . USER . "/" . REPO . "/contents/" . $filename;
+//     $ch = curl_init();
+//     $defaultOptions=[
+//         CURLOPT_URL => $url,
+//         CURLOPT_FOLLOWLOCATION => true,
+//         CURLOPT_RETURNTRANSFER => true,
+//         CURLOPT_CUSTOMREQUEST=>"PUT",
+//         CURLOPT_POSTFIELDS=>json_encode([
+//             "message"=>"uploadfile",
+//             "committer"=> [
+//                 "name"=> USER,
+//                 "email"=>MAIL,
+//             ],
+//             "content"=> $content,
+//         ]),
+//         CURLOPT_HTTPHEADER => [
+//             "Accept:text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+//             "Accept-Language:zh-CN,en-US;q=0.7,en;q=0.3",
+//             "User-Agent:Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_0) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/67.0.3396.99 Safari/537.36",
+//             'Authorization:token '.TOKEN,
+//         ],
+//     ];
+//     curl_setopt_array($ch, $defaultOptions);
+//     $chContents = curl_exec($ch);
+//     curl_close($ch);
+//     return $chContents;
+// }
+
+function upload_gitee($filename, $content)
 {   
-    $url = "https://api.github.com/repos/" . USER . "/" . REPO . "/contents/" . $filename;
+    $url = "https://gitee.com/api/v5/repos/". USER ."/". REPO ."/contents/".$filename;
     $ch = curl_init();
     $defaultOptions=[
         CURLOPT_URL => $url,
         CURLOPT_FOLLOWLOCATION => true,
         CURLOPT_RETURNTRANSFER => true,
-        CURLOPT_CUSTOMREQUEST=>"PUT",
-        CURLOPT_POSTFIELDS=>json_encode([
+        CURLOPT_CUSTOMREQUEST=>"POST",
+        CURLOPT_POSTFIELDS=>[
+            "access_token"=>TOKEN,
             "message"=>"uploadfile",
-            "committer"=> [
-                "name"=> USER,
-                "email"=>MAIL,
-            ],
             "content"=> $content,
-        ]),
+            "owner"=>USER,
+            "repo"=>REPO,
+            "path"=>$filename,
+            "branch"=>"master"
+        ],
         CURLOPT_HTTPHEADER => [
             "Accept:text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
             "Accept-Language:zh-CN,en-US;q=0.7,en;q=0.3",
-            "User-Agent:Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_0) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/67.0.3396.99 Safari/537.36",
-            'Authorization:token '.TOKEN,
+            "User-Agent:Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_0) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/67.0.3396.99 Safari/537.36"
         ],
     ];
     curl_setopt_array($ch, $defaultOptions);
@@ -61,7 +91,9 @@ $savefile = './tmp/'.$tmpname;
 dlfile($imgurl,$savefile); 
 $content_img = base64_encode(file_get_contents($savefile));
 
-$res = json_decode(upload_github($filename, $content_img), true);
-$remoteimg = 'https://cdn.jsdelivr.net/gh/' . USER . '/' . REPO . '@latest/' . $res['content']['path']; unlink($savefile);
+// $res = json_decode(upload_github($filename, $content_img), true); //上传到GitHub
+$res = json_decode(upload_gitee($filename, $content_img), true); //上传到Gitee
+
+// $remoteimg = 'https://cdn.jsdelivr.net/gh/' . USER . '/' . REPO . '@latest/' . $res['content']['path']; unlink($savefile);
+$remoteimg = $res['content']['download_url'];
 unlink($savefile);
-?>
