@@ -7,41 +7,6 @@ use LeanCloud\Client;
 use LeanCloud\LeanObject;
 use LeanCloud\User;
 
-function request_post($url = '', $post_data = array()) {
-    if (empty($url) || empty($post_data)) {
-        return false;
-    }
-
-    $o = "";
-    foreach ($post_data as $k => $v) {
-        $o.= "$k=" . urlencode($v). "&" ;
-    }
-    $post_data = substr($o,0,-1);
-
-    $postUrl = $url;
-    $curlPost = $post_data;
-    $ch = curl_init();
-    //初始化curl
-    curl_setopt($ch, CURLOPT_URL,$postUrl);
-    //抓取指定网页
-    curl_setopt($ch, CURLOPT_HEADER, 0);
-    //设置header
-    curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
-    //要求结果为字符串且输出到屏幕上
-    curl_setopt($ch, CURLOPT_POST, 1);
-    //post提交方式
-    curl_setopt($ch, CURLOPT_POSTFIELDS, $curlPost);
-    $data = curl_exec($ch);
-    //运行curl
-    curl_close($ch);
-
-    return $data;
-}
-function push($url,$class,$AppID,$AppKey,$MasterKey,$username,$userpass,$talk,$my_type) {
-    $desp = array('class' => $class,'talk' => $talk,'my_type' => $msg_type,'AppID' => $AppID,'AppKey' => $AppKey,'MasterKey' => $MasterKey,'action' => "send_talk",'username' => $username,'userpass' => md5($userpass),'token' => 'weixin');
-    $res = request_post($url, $desp);
-    return $res;
-}
 function curl($url) {
     $curl = curl_init();
     curl_setopt($curl, CURLOPT_URL, $url);
@@ -175,7 +140,10 @@ $app->server->push(function ($message) {
                                         $db->query("update `userinfo` set talk='$talk' where openid='$openid'");
                                         break;
                                     case "image":
-                                        $content = "</p><img src=\"".$message['PicUrl']."\" height=\"25.258%\" width=\"25.258%\"/>";
+                                        $imgurl = $message['PicUrl'];
+                                        include_once 'gtimg.php';
+										
+                                        $content = "</p><img src=\"".$remoteimg."\" height=\"25.258%\" width=\"25.258%\"/>";
                                         $talk = $content;
                                         $msg_type = "image";
                                         if ($type == 'start_talk') {
@@ -218,12 +186,14 @@ $app->server->push(function ($message) {
                                         $testObject->set("content", $talk);
                                         $testObject->set("os", "WeChat");
                                         $testObject->set("postion", "by WeChat");
+                                        $db->query("update `userinfo` set msg_type='',talk='' where openid='$openid'");
                                         try {
                                             $testObject->save();
                                             return "♥biubiubiu~发送成功";
                                         } catch (Exception $ex) {
                                             return "🤦‍发送失败，可能是你的绑定信息有误。";
                                         }
+                                        break;
                                 }
 
                         }
@@ -237,6 +207,4 @@ $app->server->push(function ($message) {
 });
 
 $response = $app->server->serve(); 
-
-// 将响应输出
-$response->send(); // Laravel 里请使用：return $response;
+$response->send(); 

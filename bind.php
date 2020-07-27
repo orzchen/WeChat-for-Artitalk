@@ -146,7 +146,7 @@ else:
             <div class="weui-form__extra-area">
                 <div class="weui-footer">
                     <p class="weui-footer__links">
-                        <p class="weui-footer__links"> <a href="https://www.icene.cn/" class="weui-footer__link">搭建教程</a>
+                        <p class="weui-footer__links"> <a href="https://www.icene.cn/archives/WeChat-for-Artitalk" class="weui-footer__link">搭建教程</a>
                     </p>
                     <p class="weui-footer__text">
                          Copyright © 2020-<?php echo date("Y",time());?> 闲-客
